@@ -37,11 +37,11 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
   if(is.null(confound)) {
     confound1 <- "none"
   } else {
-    confound1 <- paste(confound, collapse = "-")
+    confound1 <- paste(confound, collapse = ";")
   }
 
   # group by each chemical
-  data <- nest(data, -chem, .key = "chemdat")  %>%
+  dataC <- nest(data, -chem, .key = "chemdat")  %>%
     # run regression, getting relevant output
     mutate(fit = map(chemdat, ~ innerchemlm(data = ., outcome = outcome, value = value,
                                             confound = confound, family = family))) %>%
@@ -50,9 +50,23 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
     select(., -chemdat) %>%
     mutate(adjust = adjust1, confound = confound1)
 
+  # if confounders included, run null model
+  if(!is.null(confound)) {
+    dataU <- nest(data, -chem, .key = "chemdat")  %>%
+      # run regression, getting relevant output
+      mutate(fit = map(chemdat, ~ innerchemlm(data = ., outcome = outcome, value = value,
+                                              confound = NULL, family = family))) %>%
+      # reformat
+      unnest(fit) %>%
+      select(., -chemdat) %>%
+      mutate(adjust = adjust1, confound = "none")
+
+    dataC <- full_join(dataC, dataU)
+  }
+
 
   chem <- list()
-  chem$results <- data
+  chem$results <- dataC
   chem$outcome <- outcome
 
   class(chem) <- "chemlm"
@@ -119,13 +133,14 @@ print.chemlm <- function(x) {
 plot.chemlm <- function(x, scales = "free", ncol = 3, facetchem = F) {
   res <- x$results
   g1 <- ggplot(res) + geom_pointrange(aes(x = chem, y = est, ymin = lb, ymax = ub,
-                                    colour = confound)) +
+                                    colour = confound), position = position_dodge(0.5)) +
     ylab("Estimate") +
     xlab("") +
     geom_hline(yintercept = 0, colour = "grey50", linetype = 2) +
     theme_bw() +
     theme(text = element_text(size = 14),
-          axis.text.x = element_text(size = 10, angle = 90, hjust = 1, vjust = 0.5))
+          axis.text.x = element_text(size = 10, angle = 90, hjust = 1, vjust = 0.5),
+          legend.position = "top")
 
   if(facetchem) {
     g1 <- g1 + facet_wrap(~chem, scales = scales, ncol = ncol)
