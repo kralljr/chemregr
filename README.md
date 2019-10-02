@@ -1,7 +1,7 @@
 chemregr
 =======
 
-P package: Regression models for multiple chemical exposures
+R package: Regression models for multiple chemical exposures
 
 Install using `devtools':
 
