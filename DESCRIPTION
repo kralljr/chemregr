@@ -1,5 +1,5 @@
 Package: chemregr
-Title: Regression for multiple chemicals
+Title: Regression models for multiple chemical exposures
 Version: 0.0.0.9000
 Authors@R: person("Jenna", "Krall", email = "jenna.krall@gmail.com", role = c("aut", "cre"))
 Description: Functions to estimate associations between multiple environmental exposures and health outcomes.

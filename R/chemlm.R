@@ -1,4 +1,4 @@
-#' Running multiple regression models for chemical data
+#' Regression models for multiple chemical exposures
 #'
 #' \code{chemlm} Run regression model for chemical data
 #'

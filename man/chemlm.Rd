@@ -32,7 +32,7 @@ chemlm(x, ...)
 \item{family}{regression family (default is linear model)}
 }
 \description{
-Running multiple regression models for chemical data
+Regression models for multiple chemical exposures
 }
 \details{
 \code{chemlm} Run regression model for chemical data
