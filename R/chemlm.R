@@ -64,6 +64,8 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
     dataC <- full_join(dataC, dataU)
   }
 
+  warning("Currently not coded to handle categorical predictors!!")
+
 
   chem <- list()
   chem$results <- dataC
@@ -106,7 +108,7 @@ innerchemlm <- function(data, outcome, value = "value", confound = NULL, family 
   # run model, get 95% CI
   glm1 <- glm(eval(eqn), family = family, data = data)
   output <- summary(glm1)$coef
-  output <- data.frame(output, confint(glm1))
+  output <- data.frame(output, suppressMessages(confint(glm1)))
 
   colnames(output) <- c("est", "SE", "z", "pvalue", "lb", "ub")
   output <- output[value, ]
