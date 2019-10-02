@@ -1,0 +1,13 @@
+Package: chemregr
+Title: Regression for multiple chemicals
+Version: 0.0.0.9000
+Authors@R: person("Jenna", "Krall", email = "jenna.krall@gmail.com", role = c("aut", "cre"))
+Description: Functions to estimate associations between multiple environmental exposures and health outcomes.
+Depends: R (>= 3.6)
+Imports:
+    tidyverse (>= 1.2),
+    RColorBrewer (>= 1.1) 
+License: 
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
