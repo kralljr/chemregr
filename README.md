@@ -10,4 +10,5 @@ devtools::install_github("kralljr/chemregr")
 ```
 
 Functions to estimate associations between multiple environmental exposures and health outcomes.
-  
+
+See `?chemregr` for overall package help and `?chemlm` for the main function.  
