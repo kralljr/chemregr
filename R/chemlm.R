@@ -105,6 +105,12 @@ innerchemlm <- function(data, outcome, value = "value", confound = NULL, family 
   # get equation
   eqn <- paste0(outcome, "~", confound1)
 
+  data <- data[, c(value, confound, outcome)]
+  data <- data %>%
+    filter_all(all_vars(!is.infinite(.))) %>%
+                  filter_all(all_vars(!is.na(.)))
+
+
   # run model, get 95% CI
   glm1 <- glm(eval(eqn), family = family, data = data)
   output <- summary(glm1)$coef
