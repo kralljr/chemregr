@@ -41,7 +41,8 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
   }
 
   # group by each chemical
-  dataC <- nest(data, -chem, .key = "chemdat")  %>%
+  nest_vars <- colnames(data)[colnames(data) != "chem"]
+  dataC <- nest(data, chemdat = one_of(nest_vars)) %>%
     # run regression, getting relevant output
     mutate(fit = map(chemdat, ~ innerchemlm(data = ., outcome = outcome, value = value,
                                             confound = confound, family = family))) %>%
@@ -52,7 +53,8 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
 
   # if confounders included, run null model
   if(!is.null(confound)) {
-    dataU <- nest(data, -chem, .key = "chemdat")  %>%
+    nest_vars <- colnames(data)[colnames(data) != "chem"]
+    dataU <- nest(data, chemdat = one_of(nest_vars))  %>%
       # run regression, getting relevant output
       mutate(fit = map(chemdat, ~ innerchemlm(data = ., outcome = outcome, value = value,
                                               confound = NULL, family = family))) %>%
