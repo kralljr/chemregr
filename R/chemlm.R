@@ -147,8 +147,9 @@ plot.chemlm <- function(x, scales = "free", ncol = 3, facetchem = F) {
   res <- x$results
   
   # if logistic model
-  if("OR" %in% colnames(x$results)) {
-    res <- rename(res, est = OR, lb = ORlb, ub = ORub)
+  if("OR" %in% colnames(res)) {
+    res <- select(res, -est, -lb, -ub) %>%
+      rename(., est = OR, lb = ORlb, ub = ORub)
     ylab1 <- "OR"
   } else {
     ylab1 <- "Estimate"
