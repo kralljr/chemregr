@@ -151,15 +151,17 @@ plot.chemlm <- function(x, scales = "free", ncol = 3, facetchem = F) {
     res <- select(res, -est, -lb, -ub) %>%
       rename(., est = OR, lb = ORlb, ub = ORub)
     ylab1 <- "OR"
+    yint <- 1
   } else {
     ylab1 <- "Estimate"
+    yint <- 0
   }
   
   g1 <- ggplot(res) + geom_pointrange(aes(x = chem, y = est, ymin = lb, ymax = ub,
                                     colour = confound), position = position_dodge(0.5)) +
     ylab(ylab1) +
     xlab("") +
-    geom_hline(yintercept = 0, colour = "grey50", linetype = 2) +
+    geom_hline(yintercept = yint, colour = "grey50", linetype = 2) +
     theme_bw() +
     theme(text = element_text(size = 14),
           axis.text.x = element_text(size = 10, angle = 90, hjust = 1, vjust = 0.5),
