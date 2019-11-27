@@ -121,6 +121,9 @@ innerchemlm <- function(data, outcome, value = "value", confound = NULL, family 
   colnames(output) <- c("est", "SE", "z", "pvalue", "lb", "ub")
   output <- output[value, ]
 
+  if(family == "binomial") {
+    output <- mutate(output, OR = exp(est), ORlb = exp(lb), ORub = exp(ub))
+  }
 
   return(output)
 }
@@ -142,9 +145,18 @@ print.chemlm <- function(x) {
 #' @export
 plot.chemlm <- function(x, scales = "free", ncol = 3, facetchem = F) {
   res <- x$results
+  
+  # if logistic model
+  if("OR" %in% colnames(x$results)) {
+    res <- rename(res, est = OR, lb = ORlb, ub = ORub)
+    ylab1 <- "OR"
+  } else {
+    ylab1 <- "Estimate"
+  }
+  
   g1 <- ggplot(res) + geom_pointrange(aes(x = chem, y = est, ymin = lb, ymax = ub,
                                     colour = confound), position = position_dodge(0.5)) +
-    ylab("Estimate") +
+    ylab(ylab1) +
     xlab("") +
     geom_hline(yintercept = 0, colour = "grey50", linetype = 2) +
     theme_bw() +
