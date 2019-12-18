@@ -45,7 +45,7 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
   dataC <- nest(data, chemdat = one_of(nest_vars)) %>%
     # run regression, getting relevant output
     mutate(fit = map(chemdat, ~ innerchemlm(data = ., outcome = outcome, value = value,
-                                            confound = confound, family = family))) %>%
+                                            confound = confound, family = family, type = type))) %>%
     # reformat
     unnest(fit) %>%
     select(., -chemdat) %>%
@@ -116,9 +116,9 @@ innerchemlm <- function(data, outcome, value = "value", confound = NULL, family 
   # run model, get 95% CI
   glm1 <- glm(eval(eqn), family = family, data = data)
   output <- summary(glm1)$coef
-  output <- data.frame(output, suppressMessages(confint(glm1)))
+  output <- data.frame(names = rownames(output), output, suppressMessages(confint(glm1)))
 
-  colnames(output) <- c("est", "SE", "z", "pvalue", "lb", "ub")
+  colnames(output) <- c("names", "est", "SE", "z", "pvalue", "lb", "ub")
   #return all
   if(type == "filter") {
     output <- output[value, ]
@@ -148,7 +148,7 @@ print.chemlm <- function(x) {
 #' @export
 plot.chemlm <- function(x, scales = "free", ncol = 3, facetchem = F) {
   res <- x$results
-  
+
   # if logistic model
   if("OR" %in% colnames(res)) {
     res <- select(res, -est, -lb, -ub) %>%
@@ -159,7 +159,7 @@ plot.chemlm <- function(x, scales = "free", ncol = 3, facetchem = F) {
     ylab1 <- "Estimate"
     yint <- 0
   }
-  
+
   g1 <- ggplot(res) + geom_pointrange(aes(x = chem, y = est, ymin = lb, ymax = ub,
                                     colour = confound), position = position_dodge(0.5)) +
     ylab(ylab1) +
