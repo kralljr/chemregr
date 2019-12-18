@@ -25,7 +25,7 @@ chemlm <- function(x, ...) UseMethod("chemlm")
 
 #' @rdname chemlm
 #' @export
-chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, confound = NULL, family = "gaussian") {
+chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, confound = NULL, family = "gaussian", type = "filter") {
   # adjust data
   if(!is.null(adjust)) {
      stop("Sorry!  This is not yet programmed")
@@ -57,7 +57,7 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
     dataU <- nest(data, chemdat = one_of(nest_vars))  %>%
       # run regression, getting relevant output
       mutate(fit = map(chemdat, ~ innerchemlm(data = ., outcome = outcome, value = value,
-                                              confound = NULL, family = family))) %>%
+                                              confound = NULL, family = family, type = type))) %>%
       # reformat
       unnest(fit) %>%
       select(., -chemdat) %>%
@@ -99,7 +99,7 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
 #' # limit to one chemical
 #' dat1 <- filter(simchemdat, chem == "chem1")
 #' res <- innerchemlm(dat1, outcome = "out")
-innerchemlm <- function(data, outcome, value = "value", confound = NULL, family = "gaussian") {
+innerchemlm <- function(data, outcome, value = "value", confound = NULL, family = "gaussian", type = "filter") {
 
 
   # get linear predictor
@@ -119,7 +119,10 @@ innerchemlm <- function(data, outcome, value = "value", confound = NULL, family 
   output <- data.frame(output, suppressMessages(confint(glm1)))
 
   colnames(output) <- c("est", "SE", "z", "pvalue", "lb", "ub")
-  output <- output[value, ]
+  #return all
+  if(type == "filter") {
+    output <- output[value, ]
+  }
 
 
   return(output)
