@@ -41,7 +41,7 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
   }
 
   # group by each chemical
-  nest_vars <- colnames(data)[colnames(data) != "chem"]
+  nest_vars <- colnames(data)[colnames(data) != chem]
   dataC <- nest(data, chemdat = one_of(nest_vars)) %>%
     # run regression, getting relevant output
     mutate(fit = map(chemdat, ~ innerchemlm(data = ., outcome = outcome, value = value,
