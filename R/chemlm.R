@@ -53,7 +53,7 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
 
   # if confounders included, run null model
   if(!is.null(confound)) {
-    nest_vars <- colnames(data)[colnames(data) != "chem"]
+    nest_vars <- colnames(data)[colnames(data) != chem]
     dataU <- nest(data, chemdat = one_of(nest_vars))  %>%
       # run regression, getting relevant output
       mutate(fit = map(chemdat, ~ innerchemlm(data = ., outcome = outcome, value = value,
@@ -116,7 +116,9 @@ innerchemlm <- function(data, outcome, value = "value", confound = NULL, family 
   # run model, get 95% CI
   glm1 <- glm(eval(eqn), family = family, data = data)
   output <- summary(glm1)$coef
-  output <- data.frame(names = rownames(output), output, suppressMessages(confint(glm1)))
+  output <- try(data.frame(names = rownames(output), output, suppressMessages(confint(glm1))))
+
+  if(class(output) == "try-error") {browser()}
 
   colnames(output) <- c("names", "est", "SE", "z", "pvalue", "lb", "ub")
   #return all
