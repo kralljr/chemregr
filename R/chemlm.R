@@ -25,7 +25,8 @@ chemlm <- function(x, ...) UseMethod("chemlm")
 
 #' @rdname chemlm
 #' @export
-chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, confound = NULL, family = "gaussian", type = "filter") {
+chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
+                           confound = NULL, family = "gaussian", type = "filter") {
   # adjust data
   if(!is.null(adjust)) {
      stop("Sorry!  This is not yet programmed")
@@ -39,6 +40,8 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
   } else {
     confound1 <- paste(confound, collapse = ";")
   }
+
+  warning("Be sure categorical variables are coded as factors.  Currently cannot handle mix of categorical chemicals and numeric chemicals")
 
   # group by each chemical
   nest_vars <- colnames(data)[colnames(data) != chem]
@@ -66,7 +69,6 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
     dataC <- full_join(dataC, dataU)
   }
 
-  warning("Currently not coded to handle categorical predictors!!")
 
 
   chem <- list()
@@ -93,6 +95,7 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL, 
 #' @param value column name for value (string format)
 #' @param confound character vector of confound variable (default is null)
 #' @param family regression family (default is linear model)
+#' @param type Whether to return only chemical effect (default is filter)
 #' @export
 #' @examples
 #' data(simchemdat)
@@ -131,6 +134,63 @@ innerchemlm <- function(data, outcome, value = "value", confound = NULL, family 
   }
 
   return(output)
+}
+
+
+
+
+
+
+#' Running one regression model for chemical data
+#'
+#' \code{innerchemlmer} Run linear mixed effects model with weights for chemical data
+#'
+#' This is a function to run a single regression model for chemical data
+#'
+#' @title innerchemlmer
+#' @param data dataset
+#' @param outcome character outcome variable (string format)
+#' @param id ID variable
+#' @param weight weight variable
+#' @param value column name for value (string format)
+#' @param confound character vector of confound variable (default is null)
+#' @param type Whether to return only chemical effect (default is filter)
+#' @export
+#' @examples
+#' data(simchemdatmixed)
+#' # limit to one chemical
+#' dat1 <- dplyr::filter(simchemdatmixed, chem == "chem1")
+#' res <- innerchemlmer(dat1, outcome = "out", id = "id", weights = "weights")
+innerchemlmer <- function(data, outcome, id, weights, value = "value",
+                           confound = NULL, type = "filter") {
+
+
+  # get linear predictor
+  confound1 <- paste(paste(c(value, confound), collapse = "+"), " + (1 |", id, ")")
+  # get equation
+  eqn <- paste0(outcome, "~", confound1)
+
+  data <- data[, c(value, confound, outcome, id, weights)]
+  data <- data %>%
+    filter_all(all_vars(!is.infinite(.))) %>%
+    filter_all(all_vars(!is.na(.)))
+
+
+  # run model, get 95% CI
+  lmer1 <- lmer(eval(eqn), data = data, weights = weights) %>%
+    tidy(conf.int = T)
+
+  if(class(lmer1) == "try-error") {browser()}
+
+  #return all
+  if(type == "filter") {
+    lmer1 <- dplyr::filter(lmer1, effect == "fixed", term == "value") %>%
+      select(term, estimate : conf.high)
+  }
+
+  lmer1 <- rename(lmer1, names = term, est = estimate, SE = std.error,
+                  z = statistic, lb = conf.low, ub = conf.high)
+  return(lmer1)
 }
 
 
