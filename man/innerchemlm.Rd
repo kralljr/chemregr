@@ -4,8 +4,14 @@
 \alias{innerchemlm}
 \title{innerchemlm}
 \usage{
-innerchemlm(data, outcome, value = "value", confound = NULL,
-  family = "gaussian")
+innerchemlm(
+  data,
+  outcome,
+  value = "value",
+  confound = NULL,
+  family = "gaussian",
+  type = "filter"
+)
 }
 \arguments{
 \item{data}{dataset}
@@ -17,6 +23,8 @@ innerchemlm(data, outcome, value = "value", confound = NULL,
 \item{confound}{character vector of confound variable (default is null)}
 
 \item{family}{regression family (default is linear model)}
+
+\item{type}{Whether to return only chemical effect (default is filter)}
 }
 \description{
 Running one regression model for chemical data

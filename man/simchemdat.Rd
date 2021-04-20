@@ -4,7 +4,9 @@
 \name{simchemdat}
 \alias{simchemdat}
 \title{Chemical exposure test data}
-\format{A data frame with 200 rows and 4 variables}
+\format{
+A data frame with 200 rows and 4 variables
+}
 \description{
 A dataset of 200 observations on 2 chemical exposures, 
 one continuous outcome variable, and one continuous confounder

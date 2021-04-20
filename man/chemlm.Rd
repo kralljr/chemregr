@@ -9,8 +9,16 @@
 \usage{
 chemlm(x, ...)
 
-\method{chemlm}{default}(data, outcome, chem, value = "value",
-  adjust = NULL, confound = NULL, family = "gaussian")
+\method{chemlm}{default}(
+  data,
+  outcome,
+  chem,
+  value = "value",
+  adjust = NULL,
+  confound = NULL,
+  family = "gaussian",
+  type = "filter"
+)
 
 \method{print}{chemlm}(x)
 

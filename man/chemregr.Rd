@@ -3,7 +3,6 @@
 \docType{package}
 \name{chemregr}
 \alias{chemregr}
-\alias{chemregr-package}
 \title{Regression models for multiple chemical exposures}
 \description{
 This package contains functions to facilitate estimating associations
