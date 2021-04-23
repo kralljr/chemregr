@@ -13,6 +13,11 @@
 #' @param adjust function to modify chemicals (default is NULL)
 #' @param confound character vector of confound variables
 #' @param family regression family (default is linear model)
+#' @param type whether to filter results for only chem
+#' @param mixed whether mixed model (random intercept only currently)
+#' @param id id variable name
+#' @param weights weights variable name
+#' @param resid whether to output residuals
 #' @export
 #' @examples
 #' data(simchemdat)
@@ -26,7 +31,8 @@ chemlm <- function(x, ...) UseMethod("chemlm")
 #' @rdname chemlm
 #' @export
 chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
-                           confound = NULL, family = "gaussian", type = "filter", mixed = F, id = NULL, weights = NULL) {
+                           confound = NULL, family = "gaussian", type = "filter", mixed = F, id = NULL, weights = NULL,
+                           resid = F) {
   # adjust data
   if(!is.null(adjust)) {
      stop("Sorry!  This is not yet programmed")
@@ -49,24 +55,31 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
     # run regression, getting relevant output
     mutate(fit = map(chemdat, ~ innerchem(data = ., outcome = outcome, value = value,
                                             confound = confound, family = family, type = type, mixed = mixed, id = id,
-                                          weights = weights))) %>%
-    # reformat
-    unnest(fit) %>%
-    select(., -chemdat) %>%
-    mutate(adjust = adjust1, confound = confound1)
+                                          weights = weights, resid = resid))) %>%
+    unnest(fit)
+
+  if(!resid) {
+    dataC <- dataC %>%
+      # reformat
+      select(., -chemdat) %>%
+      mutate(adjust = adjust1, confound = confound1)
+  }
+
 
   # if confounders included, run null model
-  if(!is.null(confound)) {
+  if(!is.null(confound) & !resid) {
     nest_vars <- colnames(data)[colnames(data) != chem]
     dataU <- nest(data, chemdat = one_of(nest_vars))  %>%
       # run regression, getting relevant output
       mutate(fit = map(chemdat, ~ innerchem(data = ., outcome = outcome, value = value,
                                               confound = NULL, family = family, type = type, mixed = mixed, id = id,
-                                            weights = weights))) %>%
+                                            weights = weights, resid = F))) %>%
       # reformat
       unnest(fit) %>%
       select(., -chemdat) %>%
       mutate(adjust = adjust1, confound = "none")
+
+
 
     dataC <- full_join(dataC, dataU)
   }
@@ -77,8 +90,11 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
   chem$results <- dataC
   chem$outcome <- outcome
 
-  class(chem) <- "chemlm"
 
+
+  if(!resid) {
+    class(chem) <- "chemlm"
+  }
   return(chem)
 }
 
@@ -98,6 +114,9 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
 #' @param family regression family (default is linear model)
 #' @param type Whether to return only chemical effect (default is filter)
 #' @param mixed Whether to run random intercept model
+#' @param id id variable name
+#' @param weights weights variable name
+#' @param resid whether to output residuals
 #' @export
 #' @examples
 #' data(simchemdat)
@@ -105,13 +124,13 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
 #' dat1 <- filter(simchemdat, chem == "chem1")
 #' res <- innerchemlm(dat1, outcome = "out")
 innerchem <- function(data, outcome, value = "value", confound = NULL, family = "gaussian", type = "filter", mixed = F,
-                      id = NULL, weights = NULL) {
+                      id = NULL, weights = NULL, resid = F) {
     if(mixed == F) {
       innerchemlm(data, outcome = outcome, value = value,
                   confound = confound, family = family, type = type)
     } else {
       innerchemlmer(data, outcome = outcome, id = id, weights = weights, value = value,
-                  confound = confound, type = type)
+                  confound = confound, type = type, resid= resid)
     }
 
 }
@@ -188,6 +207,7 @@ innerchemlm <- function(data, outcome, value = "value", confound = NULL, family 
 #' @param value column name for value (string format)
 #' @param confound character vector of confound variable (default is null)
 #' @param type Whether to return only chemical effect (default is filter)
+#' @param resid whether to output residuals
 #' @export
 #' @examples
 #' data(simchemdatmixed)
@@ -195,7 +215,7 @@ innerchemlm <- function(data, outcome, value = "value", confound = NULL, family 
 #' dat1 <- dplyr::filter(simchemdatmixed, chem == "chem1")
 #' res <- innerchemlmer(dat1, outcome = "out", id = "id", weights = "weights")
 innerchemlmer <- function(data, outcome, id, weights, value = "value",
-                           confound = NULL, type = "filter") {
+                           confound = NULL, type = "filter", resid = F) {
 
 
   # get linear predictor
@@ -211,7 +231,9 @@ innerchemlmer <- function(data, outcome, id, weights, value = "value",
 
 
   # run model, get 95% CI
-  lmer1 <- lme4::lmer(eval(eqn), data = data, weights = eval(weights)) %>%
+  lmer1 <- lme4::lmer(eval(eqn), data = data, weights = eval(weights))
+  resid1 <- mutate(data, resid = resid(lmer1), fitted = predict(lmer1))
+  lmer1 <- lmer1 %>%
     broom.mixed::tidy(conf.int = T)
 
   if(class(lmer1) == "try-error") {browser()}
@@ -224,7 +246,13 @@ innerchemlmer <- function(data, outcome, id, weights, value = "value",
 
   lmer1 <- rename(lmer1, names = term, est = estimate, SE = std.error,
                   z = statistic, lb = conf.low, ub = conf.high)
-  return(lmer1)
+
+  if(resid) {
+    results <- resid1
+  } else {
+    results <- lmer1
+  }
+  return(results)
 }
 
 
