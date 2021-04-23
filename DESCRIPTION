@@ -7,6 +7,8 @@ Depends: R (>= 3.6)
 Imports:
     tidyverse (>= 1.2),
     RColorBrewer (>= 1.1), 
+    broom (>= 0.7),
+    broom.mixed (>= 0.2),
     lme4 (>= 1.1)
 License: 
 Encoding: UTF-8

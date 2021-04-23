@@ -26,7 +26,7 @@ chemlm <- function(x, ...) UseMethod("chemlm")
 #' @rdname chemlm
 #' @export
 chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
-                           confound = NULL, family = "gaussian", type = "filter") {
+                           confound = NULL, family = "gaussian", type = "filter", mixed = F, id = NULL, weights = NULL) {
   # adjust data
   if(!is.null(adjust)) {
      stop("Sorry!  This is not yet programmed")
@@ -47,8 +47,9 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
   nest_vars <- colnames(data)[colnames(data) != chem]
   dataC <- nest(data, chemdat = one_of(nest_vars)) %>%
     # run regression, getting relevant output
-    mutate(fit = map(chemdat, ~ innerchemlm(data = ., outcome = outcome, value = value,
-                                            confound = confound, family = family, type = type))) %>%
+    mutate(fit = map(chemdat, ~ innerchem(data = ., outcome = outcome, value = value,
+                                            confound = confound, family = family, type = type, mixed = mixed, id = id,
+                                          weights = weights))) %>%
     # reformat
     unnest(fit) %>%
     select(., -chemdat) %>%
@@ -59,8 +60,9 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
     nest_vars <- colnames(data)[colnames(data) != chem]
     dataU <- nest(data, chemdat = one_of(nest_vars))  %>%
       # run regression, getting relevant output
-      mutate(fit = map(chemdat, ~ innerchemlm(data = ., outcome = outcome, value = value,
-                                              confound = NULL, family = family, type = type))) %>%
+      mutate(fit = map(chemdat, ~ innerchem(data = ., outcome = outcome, value = value,
+                                              confound = NULL, family = family, type = type, mixed = mixed, id = id,
+                                            weights = weights))) %>%
       # reformat
       unnest(fit) %>%
       select(., -chemdat) %>%
@@ -82,6 +84,37 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
 
 
 
+#' Choose regression
+#'
+#' \code{innerchem} Run regression model for chemical data
+#'
+#' This is a function to run a single regression model for chemical data
+#'
+#' @title innerchem
+#' @param data dataset
+#' @param outcome character outcome variable (string format)
+#' @param value column name for value (string format)
+#' @param confound character vector of confound variable (default is null)
+#' @param family regression family (default is linear model)
+#' @param type Whether to return only chemical effect (default is filter)
+#' @param mixed Whether to run random intercept model
+#' @export
+#' @examples
+#' data(simchemdat)
+#' # limit to one chemical
+#' dat1 <- filter(simchemdat, chem == "chem1")
+#' res <- innerchemlm(dat1, outcome = "out")
+innerchem <- function(data, outcome, value = "value", confound = NULL, family = "gaussian", type = "filter", mixed = F,
+                      id = NULL, weights = NULL) {
+    if(mixed == F) {
+      innerchemlm(data, outcome = outcome, value = value,
+                  confound = confound, family = family, type = type)
+    } else {
+      innerchemlmer(data, outcome = outcome, id = id, weights = weights, value = value,
+                  confound = confound, type = type)
+    }
+
+}
 
 #' Running one regression model for chemical data
 #'
@@ -166,7 +199,8 @@ innerchemlmer <- function(data, outcome, id, weights, value = "value",
 
 
   # get linear predictor
-  confound1 <- paste(paste(c(value, confound), collapse = "+"), " + (1 |", id, ")")
+  confound1 <- paste(paste(c(value, confound), collapse = "+"),
+                     " + (1 |", id, ")")
   # get equation
   eqn <- paste0(outcome, "~", confound1)
 
@@ -177,14 +211,14 @@ innerchemlmer <- function(data, outcome, id, weights, value = "value",
 
 
   # run model, get 95% CI
-  lmer1 <- lmer(eval(eqn), data = data, weights = weights) %>%
+  lmer1 <- lme4::lmer(eval(eqn), data = data, weights = eval(weights)) %>%
     tidy(conf.int = T)
 
   if(class(lmer1) == "try-error") {browser()}
 
   #return all
   if(type == "filter") {
-    lmer1 <- dplyr::filter(lmer1, effect == "fixed", term == "value") %>%
+    lmer1 <- dplyr::filter(lmer1, effect == "fixed", term == value) %>%
       select(term, estimate : conf.high)
   }
 
