@@ -32,7 +32,7 @@ chemlm <- function(x, ...) UseMethod("chemlm")
 #' @export
 chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
                            confound = NULL, family = "gaussian", type = "filter", mixed = F, id = NULL, weights = NULL,
-                           resid = F) {
+                           resid = F, corstr1 = "independence") {
   # adjust data
   if(!is.null(adjust)) {
      stop("Sorry!  This is not yet programmed")
@@ -55,7 +55,7 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
     # run regression, getting relevant output
     mutate(fit = map(chemdat, ~ innerchem(data = ., outcome = outcome, value = value,
                                             confound = confound, family = family, type = type, mixed = mixed, id = id,
-                                          weights = weights, resid = resid))) %>%
+                                          weights = weights, resid = resid, corstr1 = corstr1))) %>%
     unnest(fit)
 
   if(!resid) {
@@ -124,13 +124,16 @@ chemlm.default <- function(data, outcome, chem, value = "value", adjust = NULL,
 #' dat1 <- filter(simchemdat, chem == "chem1")
 #' res <- innerchemlm(dat1, outcome = "out")
 innerchem <- function(data, outcome, value = "value", confound = NULL, family = "gaussian", type = "filter", mixed = F,
-                      id = NULL, weights = NULL, resid = F) {
+                      id = NULL, weights = NULL, resid = F, corstr1 = "independence") {
     if(mixed == F) {
       innerchemlm(data, outcome = outcome, value = value,
                   confound = confound, family = family, type = type)
-    } else {
+    } else if(mixed == "mixed") {
       innerchemlmer(data, outcome = outcome, id = id, weights = weights, value = value,
                   confound = confound, type = type, resid= resid)
+    } else {
+      innerchemgee(data, outcome = outcome, id = id, weights = weights, value = value,
+                    confound = confound, type = type, resid= resid, corstr1 = corstr1)
     }
 
 }
@@ -241,6 +244,73 @@ innerchemlmer <- function(data, outcome, id, weights, value = "value",
   #return all
   if(type == "filter") {
     lmer1 <- dplyr::filter(lmer1, effect == "fixed", term == value) %>%
+      select(term, estimate : conf.high)
+  }
+
+  lmer1 <- rename(lmer1, names = term, est = estimate, SE = std.error,
+                  z = statistic, lb = conf.low, ub = conf.high)
+
+  if(resid) {
+    results <- resid1
+  } else {
+    results <- lmer1
+  }
+  return(results)
+}
+
+
+
+
+
+#' Running one regression model for chemical data
+#'
+#' \code{innerchemlmer} Run GEE model (for MSM) with weights for chemical data
+#'
+#' This is a function to run a single regression model for chemical data
+#'
+#' @title innerchemgee
+#' @param data dataset
+#' @param outcome character outcome variable (string format)
+#' @param id ID variable
+#' @param weight weight variable
+#' @param value column name for value (string format)
+#' @param confound character vector of confound variable (default is null)
+#' @param type Whether to return only chemical effect (default is filter)
+#' @param resid whether to output residuals
+#' @export
+#' @examples
+#' data(simchemdatmixed)
+#' # limit to one chemical
+#' dat1 <- dplyr::filter(simchemdatmixed, chem == "chem1")
+#' res <- innerchemgee(dat1, outcome = "out", id = "id", weights = "weights")
+innerchemgee <- function(data, outcome, id, weights, value = "value",
+                          confound = NULL, type = "filter", resid = F,
+                         corstr1 = "independence") {
+
+
+  # get linear predictor
+  confound1 <- paste(c(value, confound), collapse = "+")
+  # get equation
+  eqn <- paste0(outcome, "~", confound1)
+
+  data <- data[, c(value, confound, outcome, id, weights)]
+  data <- data %>%
+    filter_all(all_vars(!is.infinite(.))) %>%
+    filter_all(all_vars(!is.na(.)))
+
+
+  # run model, get 95% CI
+
+  lmer1 <- geepack::geeglm(formula = formula(eqn),id =id,  data = data, corstr = corstr1) #, weights = eval(weights))
+  resid1 <- mutate(data, resid = resid(lmer1), fitted = predict(lmer1))
+  lmer1 <- lmer1 %>%
+    broom::tidy(conf.int = T)
+
+  if(class(lmer1) == "try-error") {browser()}
+
+  #return all
+  if(type == "filter") {
+    lmer1 <- dplyr::filter(lmer1, term == value) %>%
       select(term, estimate : conf.high)
   }
 
