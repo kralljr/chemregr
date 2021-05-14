@@ -17,12 +17,19 @@ chemlm(x, ...)
   adjust = NULL,
   confound = NULL,
   family = "gaussian",
-  type = "filter"
+  type = "filter",
+  mixed = F,
+  id = NULL,
+  weights = NULL,
+  resid = F,
+  corstr1 = "independence"
 )
 
 \method{print}{chemlm}(x)
 
-\method{plot}{chemlm}(x, scales = "free", ncol = 3, facetchem = F)
+\method{plot}{chemlm}(x, scales = "free", ncol = 3, facetchem = F, facetout = F)
+
+\method{plot}{chemlm}(x, scales = "free", ncol = 3, facetchem = F, facetout = F)
 }
 \arguments{
 \item{data}{dataset.  data should be in "long" format with the chemical names in one column and the values in another}
@@ -38,6 +45,16 @@ chemlm(x, ...)
 \item{confound}{character vector of confound variables}
 
 \item{family}{regression family (default is linear model)}
+
+\item{type}{whether to filter results for only chem}
+
+\item{mixed}{whether mixed model (random intercept only currently)}
+
+\item{id}{id variable name}
+
+\item{weights}{weights variable name}
+
+\item{resid}{whether to output residuals}
 }
 \description{
 Regression models for multiple chemical exposures
