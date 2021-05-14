@@ -287,7 +287,7 @@ innerchemgee <- function(data, outcome, id, weights, value = "value",
                           confound = NULL, type = "filter", resid = F,
                          corstr1 = "independence") {
 
-  if(id == "id") {
+  if(id != "id") {
     stop("ID variable must be named id")
   }
   # get linear predictor
