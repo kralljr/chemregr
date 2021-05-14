@@ -287,7 +287,9 @@ innerchemgee <- function(data, outcome, id, weights, value = "value",
                           confound = NULL, type = "filter", resid = F,
                          corstr1 = "independence") {
 
-
+  if(id == "id") {
+    stop("ID variable must be named id")
+  }
   # get linear predictor
   confound1 <- paste(c(value, confound), collapse = "+")
   # get equation
@@ -301,7 +303,7 @@ innerchemgee <- function(data, outcome, id, weights, value = "value",
 
   # run model, get 95% CI
 
-  lmer1 <- geepack::geeglm(formula = formula(eqn),id =id,  data = data, corstr = corstr1) #, weights = eval(weights))
+  lmer1 <- geepack::geeglm(formula = formula(eqn),id = id,  data = data, corstr = corstr1, weights = eval(weights))
   resid1 <- mutate(data, resid = resid(lmer1), fitted = predict(lmer1))
   lmer1 <- lmer1 %>%
     broom::tidy(conf.int = T)
