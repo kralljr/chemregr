@@ -176,7 +176,7 @@ innerchemlm <- function(data, outcome, value = "value", confound = NULL, family 
   output <- summary(glm1)$coef
   output <- try(data.frame(names = rownames(output), output, suppressMessages(confint(glm1))))
 
-  if(class(output) == "try-error") {browser()}
+  if(class(output)[1] == "try-error") {browser()}
 
   colnames(output) <- c("names", "est", "SE", "z", "pvalue", "lb", "ub")
   #return all
@@ -239,7 +239,7 @@ innerchemlmer <- function(data, outcome, id, weights, value = "value",
   lmer1 <- lmer1 %>%
     broom.mixed::tidy(conf.int = T)
 
-  if(class(lmer1) == "try-error") {browser()}
+  if(class(lmer1)[1] == "try-error") {browser()}
 
   #return all
   if(type == "filter") {
@@ -308,7 +308,7 @@ innerchemgee <- function(data, outcome, id, weights, value = "value",
   lmer1 <- lmer1 %>%
     broom::tidy(conf.int = T)
 
-  if(class(lmer1) == "try-error") {browser()}
+  if(class(lmer1)[1] == "try-error") {browser()}
 
   #return all
   if(type == "filter") {
